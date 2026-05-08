@@ -1,4 +1,4 @@
-FROM node:22-alpine as base
+FROM node:22-alpine
 
 RUN apk update && apk upgrade && apk add --no-cache dumb-init
 
@@ -11,4 +11,4 @@ COPY src/ ./src/
 
 EXPOSE 3000
 
-CMD ["node", "src/index.js"]
+CMD ["dumb-init", "node", "src/index.js"]

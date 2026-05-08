@@ -18,14 +18,18 @@ permissions:
   actions: read
   id-token: write
   packages: write
+
 jobs:
   # ==========================================
   # PARALLEL STAGE 1: FAST CHECKS
   # ==========================================
   gitleaks-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Running Gitleaks scan in PR mode..."    
+    uses: nlttin/singpost-cicd-components/.github/workflows/reusable-workflow-gitleaks.yml@dev
+    with:
+      scan_mode: full
+      config-ref: dev
+      fail-on-detection: false
+    secrets: inherit
 
   app-ci-test:
     runs-on: ubuntu-latest
@@ -33,12 +37,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'npm'
       - run: |
-          echo "npm install..."
           npm install || true
-          echo "npm test..."
           npm test --if-present
 
   # ==========================================
