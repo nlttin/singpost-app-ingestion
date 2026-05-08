@@ -1,4 +1,6 @@
-FROM node:22-alpine
+FROM node:22-alpine as base
+
+RUN apk update && apk upgrade && apk add --no-cache dumb-init
 
 WORKDIR /app
 
