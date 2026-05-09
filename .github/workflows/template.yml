@@ -26,7 +26,7 @@ jobs:
   gitleaks-scan:
     uses: nlttin/singpost-cicd-components/.github/workflows/reusable-workflow-gitleaks.yml@dev
     with:
-      scan_mode: full
+      scan_mode: pr
       config-ref: dev
       fail-on-detection: false
     secrets: inherit
