@@ -1,0 +1,35 @@
+# Cloud Build pipeline for singpost-app-ingestion.
+#
+# Reproduce locally:
+#   gcloud builds submit \
+#     --config=cloudbuild.yaml \
+#     --substitutions=_IMAGE=asia-docker.pkg.dev/PROJECT_ID/singpost/singpost-app-ingestion:local
+#
+# CI passes _IMAGE in via the reusable-cloud-run-deploy-config.yml workflow.
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: build
+    args:
+      - 'build'
+      - '-t'
+      - '${_IMAGE}'
+      - '.'
+
+  - name: gcr.io/cloud-builders/docker
+    id: push
+    args:
+      - 'push'
+      - '${_IMAGE}'
+    waitFor:
+      - build
+
+images:
+  - '${_IMAGE}'
+
+# Regional Cloud Build pools cannot write logs to GCS without an explicit
+# service account, so route logs to Cloud Logging only.
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
