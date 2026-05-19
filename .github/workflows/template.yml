@@ -42,12 +42,59 @@ jobs:
       build-mode: 'none'
       queries: 'security-extended'
 
-  # ── Stage 3: Docker build → GHCR (needs Stage 2) ─────────────────────
-  docker-build:
+  # ── Stage 3: Cloud Build → GHCR (needs Stage 2, push only) ──────────
+  cloud-build:
     needs: codeql-scan
-    uses: nlttin/singpost-cicd-components/.github/workflows/reusable-docker-build.yml@dev
-    with:
-      image-name: singpost-app-ingestion
-      environment: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-      push: ${{ github.event_name == 'push' }}
-    secrets: inherit
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SA_EMAIL }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Submit to Cloud Build
+        run: |
+          BUILD_ID=$(gcloud builds submit \
+            --project=${{ secrets.GCP_PROJECT }} \
+            --config=cloudbuild.yaml \
+            --substitutions=SHORT_SHA=${{ github.sha }} \
+            --async \
+            --format='value(id)' \
+            .)
+          echo "Build ID: $BUILD_ID"
+          while true; do
+            STATUS=$(gcloud builds describe "$BUILD_ID" \
+              --project=${{ secrets.GCP_PROJECT }} \
+              --format='value(status)')
+            echo "Build status: $STATUS"
+            case "$STATUS" in
+              SUCCESS) echo "Build succeeded!"; break ;;
+              FAILURE|CANCELLED|TIMEOUT|INTERNAL_ERROR)
+                echo "Build failed with status: $STATUS"
+                exit 1 ;;
+            esac
+            sleep 15
+          done
+
+      - name: Download image tar from GCS
+        run: |
+          gcloud storage cp \
+            gs://project-a8a37a94-04a7-44bf-a2c_cloudbuild/builds/${{ github.sha }}/image.tar \
+            image.tar
+
+      - name: Upload image tar as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: singpost-app-ingestion-${{ github.sha }}
+          path: image.tar
+          retention-days: 7
