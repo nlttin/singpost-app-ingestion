@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [dev, main, 'feature/**']
+    branches: [dev, main, 'feature/**', 'feat/**']
   pull_request:
     branches: [dev, main]
 
@@ -85,16 +85,3 @@ jobs:
             esac
             sleep 15
           done
-
-      - name: Download image tar from GCS
-        run: |
-          gcloud storage cp \
-            gs://project-a8a37a94-04a7-44bf-a2c_cloudbuild/builds/${{ github.sha }}/image.tar \
-            image.tar
-
-      - name: Upload image tar as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: singpost-app-ingestion-${{ github.sha }}
-          path: image.tar
-          retention-days: 7

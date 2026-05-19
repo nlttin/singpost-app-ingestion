@@ -4,7 +4,6 @@ steps:
     args:
       - -c
       - |
-        set -e
         printf '%s' "$$GITHUB_PAT" | docker login ghcr.io -u nlttin --password-stdin
         docker build \
           -t ghcr.io/nlttin/singpost-app-ingestion:$SHORT_SHA \
@@ -12,7 +11,6 @@ steps:
           .
         docker push ghcr.io/nlttin/singpost-app-ingestion:$SHORT_SHA
         docker push ghcr.io/nlttin/singpost-app-ingestion:latest
-        docker save ghcr.io/nlttin/singpost-app-ingestion:$SHORT_SHA -o /workspace/image.tar
     secretEnv:
       - GITHUB_PAT
 
@@ -20,11 +18,6 @@ availableSecrets:
   secretManager:
     - versionName: projects/project-a8a37a94-04a7-44bf-a2c/secrets/github-pat/versions/latest
       env: GITHUB_PAT
-
-artifacts:
-  objects:
-    location: 'gs://project-a8a37a94-04a7-44bf-a2c_cloudbuild/builds/${SHORT_SHA}/'
-    paths: ['image.tar']
 
 options:
   logging: CLOUD_LOGGING_ONLY
